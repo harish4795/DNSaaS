@@ -1,0 +1,61 @@
+---
+  - name: Configure DNS using bind
+    hosts: localhost
+    remote_user: root
+
+    vars:
+      zone: univ.edu
+      zone_names: 
+       - univ.edu-net1.zone
+       #- univ.edu-net2.zone.
+      zone_address: "192.168.10.100"     
+      allow_query_from: "192.168.10.0/24; 192.168.20.0/24; 192.168.30.0/24;"
+      name_server: 
+        - "dns1.univ.edu"
+        #- dns2.univ.edu
+      recursion: yes
+      net1_servers:
+        - { hostname: www.csc, ip: 192.168.10.5 }
+        - { hostname: www.ece, ip: 192.168.10.4 }
+      #net2_servers:
+       # - { hostname: www.csc, ip:192.168.20.4 }
+        #- { hostname: www.csc, ip:192.168.20.6 }
+        #- { hostname: www.ece, ip:192.168.20.5 }
+      networks:
+        - { net: net1, ip: 192.168.10.0/24, view: net1-view, forward_zone: univ.edu-net1.zone, rev_zone: 10.168.192.in-addr.arpa }
+#- { net: net2, ip:192.168.20.0/24, view: net2-view, forward_zone: univ.edu-net2.zone, rev_zone: 20.168.192.in-addr.arpa }
+
+    tasks:
+    - name: Install bind and bind-utils package
+      yum: name="{{item}}" state=present
+      with_items:
+        - bind
+        - bind-utils
+
+    - name: Create custom named.conf with desired zone
+      template: src=named.conf dest=/etc/named.conf owner=root group=named mode=640
+      notify:
+        - restart bind
+
+    - name: Copy zone forward files for all zones to /var/named
+      template: src=univ.edu-net1.zone dest="/var/named/{{item}}" owner=root group=named mode=640
+      with_items: "{{zone_names}}"
+      notify:
+        - restart bind
+       
+    - name: Copy zone reverse files for all zones to /var/named
+      template: src=db.10.168.192 dest="/var/named/db.10.168.192" owner=root group=named mode=640
+      notify:
+        - restart bind
+
+    - name: Disable IPv6 support
+      lineinfile: dest=/etc/sysconfig/named line='OPTIONS="-4"' regexp="^OPTIONS" 
+      notify:
+        - restart bind
+
+    - name: Start and enable bind service
+      service: name=named state=started enabled=yes
+
+    handlers:
+    - name: restart bind
+      service: name=named state=restarted

@@ -1,0 +1,10 @@
+$TTL 3600 
+
+@ IN SOA {{zone}} root.{{zone}} (4 604800 86400 2419200 604800) 
+
+		IN	NS	dns1.univ.edu
+
+		
+100 IN PTR dns1.univ.edu
+4   IN PTR www.csc.univ.edu
+5   IN PTR www.ece.univ.edu

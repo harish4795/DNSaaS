@@ -1,0 +1,12 @@
+$TTL 3600 
+@ IN SOA {{zone}} root.{{zone}} (4 604800 86400 2419200 604800) 
+		IN	NS	dns1
+		IN	A 	{{zone_address}}
+
+{% for server in net1_servers  %}
+
+{{server.hostname}}	IN	A	{{server.ip}}
+
+{% endfor %}
+
+dns1			IN	A	192.168.10.100
